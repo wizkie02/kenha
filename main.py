@@ -94,10 +94,11 @@ if __name__ == '__main__':
         batchsize = 128
     print(batchsize)
     if args.train:
-        net = torchvision.models.efficientnet_v2_l()
+        net = torchvision.models.efficientnet_v2_m(weights = torchvision.models.EfficientNet_V2_M_Weights)
         net.features[0][0] = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 3), stride=(2, 2),
                                          padding=(1, 1), bias=False)
         net.classifier[1] = nn.Linear(in_features=1280, out_features=7, bias=True)
+        # sys.exit()
         net.to(device)
         print("Model archticture: ", net)
         traincsv_file = args.data+'/'+'train.csv'
