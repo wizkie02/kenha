@@ -1,8 +1,6 @@
 from __future__ import print_function
 import argparse
-import sys
-
-import numpy as np
+import numpy  as np
 from PIL import Image
 import torch
 import torch.nn as nn
@@ -15,17 +13,17 @@ from torchvision import transforms
 
 from data_loaders import Plain_Dataset, eval_data_dataloader
 from deep_emotion import Deep_Emotion
-from B_LSTM import BRNN
 from generate_data import Generate_data
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def Train(epochs,train_loader,val_loader,criterion,optmizer,device):
+def Train(epochs,train_loader,val_loader,criterion,optmizer, scheduler,device):
     '''
     Training Loop
     '''
     print("===================================Start Training===================================")
     for e in range(epochs):
+	print(optimizer.param_groups[0]["lr"])
         train_loss = 0
         validation_loss = 0
         train_correct = 0
@@ -42,7 +40,7 @@ def Train(epochs,train_loader,val_loader,criterion,optmizer,device):
             train_loss += loss.item()
             _, preds = torch.max(outputs,1)
             train_correct += torch.sum(preds == labels.data)
-
+	scheduler.step()
         #validate the model#
         net.eval()
         for data,labels in val_loader:
@@ -89,16 +87,12 @@ if __name__ == '__main__':
         lr = args.learning_rate
         batchsize = args.batch_size
     else :
-        epochs = 100
-        lr = 0.005
-        batchsize = 128
-    print(batchsize)
+        epochs = 200
+        lr = 0.001
+        batchsize = 64
+
     if args.train:
-        net = torchvision.models.efficientnet_b0()
-        net.features[0][0] = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 3), stride=(2, 2),
-                                         padding=(1, 1), bias=False)
-        net.classifier[1] = nn.Linear(in_features=1280, out_features=7, bias=True)
-        # sys.exit()
+        net = Deep_Emotion()
         net.to(device)
         print("Model archticture: ", net)
         traincsv_file = args.data+'/'+'train.csv'
@@ -110,10 +104,9 @@ if __name__ == '__main__':
         train_dataset= Plain_Dataset(csv_file=traincsv_file, img_dir = train_img_dir, datatype = 'train', transform = transformation)
         validation_dataset= Plain_Dataset(csv_file=validationcsv_file, img_dir = validation_img_dir, datatype = 'val', transform = transformation)
         train_loader= DataLoader(train_dataset,batch_size=batchsize,shuffle = True,num_workers=0)
-        val_loader= DataLoader(validation_dataset,batch_size=batchsize,shuffle = True,num_workers=0)
+        val_loader=   DataLoader(validation_dataset,batch_size=batchsize,shuffle = True,num_workers=0)
 
         criterion= nn.CrossEntropyLoss()
         optmizer= optim.Adam(net.parameters(),lr= lr)
-        Train(100, train_loader, val_loader, criterion, optmizer, device)
-        # /////
-        # Train(epochs, train_loader, val_loader, criterion, optmizer, device)
+	scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[81,121, 161,181], gamma=0.1)
+        Train(epochs, train_loader, val_loader, criterion, optmizer, scheduler, device)

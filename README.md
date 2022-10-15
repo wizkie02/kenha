@@ -76,5 +76,3 @@ python visualize.py [-t] [-c] [--data [data_path]] [--model [model_path]]
 <p align="center">
   <img src="imgs/samples.png" width="720" title="Deep-Emotion Architecture">
 </p>
-"# cay" 
-"# cay" 
